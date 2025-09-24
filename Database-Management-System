@@ -1,0 +1,135 @@
+-- Question 1: Build a Complete Database Management System --
+
+-- Create the database
+CREATE DATABASE IF NOT EXISTS ecommerce_store;
+USE ecommerce_store;
+
+-- Customers table
+CREATE TABLE Customers (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(20),
+    address TEXT
+);
+
+-- Categories table
+CREATE TABLE Categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- Products table
+CREATE TABLE Products (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+);
+
+-- Inventory table (One-to-One with Products)
+CREATE TABLE Inventory (
+    product_id INT PRIMARY KEY,
+    stock_quantity INT NOT NULL DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+-- Orders table
+CREATE TABLE Orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'Pending',
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+);
+
+-- OrderItems table (Many-to-Many: Orders ↔ Products)
+CREATE TABLE OrderItems (
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (order_id, product_id),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+-- Payments table
+CREATE TABLE Payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL UNIQUE,
+    payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    amount DECIMAL(10,2) NOT NULL,
+    method VARCHAR(50),
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+
+-- Insert Categories
+INSERT INTO Categories (name, description) VALUES
+('Electronics', 'Devices and gadgets'),
+('Books', 'Printed and digital books'),
+('Clothing', 'men and women');
+
+-- Insert Products
+INSERT INTO Products (name, description, price, category_id) VALUES
+('Smartphone', 'realme 128GB storage', 10100.99, 1),
+('Laptop', 'HP 15-inch screen, 16GB RAM', 17099.00, 1),
+('Novel', 'Bestselling fiction book', 100.00, 2),
+('T-Shirt', 'Cotton round neck', 200.00, 3);
+
+-- Insert Inventory
+INSERT INTO Inventory (product_id, stock_quantity) VALUES
+(1, 50), (2, 30), (3, 100), (4, 200);
+
+-- Insert Customers
+INSERT INTO Customers (name, email, phone, address) VALUES
+('Ann Katui', 'annkatu@gmail.com', '+254712345678', '29 Migori'),
+('Ayub Samuel', 'samuel@yahoo.com', '555-5678', '192 Muranga');
+
+-- Insert Orders
+INSERT INTO Orders (customer_id, order_date, status) VALUES
+(1, NOW(), 'Placed'),
+(2, NOW(), 'Confirmed');
+
+-- Insert OrderItems
+INSERT INTO OrderItems (order_id, product_id, quantity, price) VALUES
+(1, 1, 1, 10100.00),
+(1, 4, 2, 100.00),
+(1, 3, 2, 200.00),
+(2, 2, 1, 17099.00);
+
+-- Insert Payments
+INSERT INTO Payments (order_id, payment_date, amount, method) VALUES
+(1, NOW(), 17099, 'Credit Card');
+
+--Get orders with customer names and total amount
+SELECT 
+    o.order_id,
+    c.name AS customer_name,
+    SUM(oi.quantity * oi.price) AS total_amount
+FROM Orders o
+JOIN Customers c ON o.customer_id = c.customer_id
+JOIN OrderItems oi ON o.order_id = oi.order_id
+GROUP BY o.order_id, c.name;
+
+-- List products with their category and stock
+SELECT 
+    p.name AS product_name,
+    c.name AS category,
+    i.stock_quantity
+FROM Products p
+JOIN Categories c ON p.category_id = c.category_id
+JOIN Inventory i ON p.product_id = i.product_id;
+
+-- Show all payments with order status
+SELECT 
+    pay.payment_id,
+    pay.amount,
+    pay.method,
+    o.status
+FROM Payments pay
+JOIN Orders o ON pay.order_id = o.order_id;
+
